@@ -1,5 +1,5 @@
 # User Specified
-go_filter_path: /mnt/home/ssledzieski/Projects/philharmonic-experiments/code/assets/go_filter.txt
+# go_filter_path: /mnt/home/ssledzieski/Projects/philharmonic-experiments/code/assets/go_filter.txt
 use_llm: true
 
 ############################################
@@ -16,7 +16,7 @@ hmmscan:
 dscript:
   path: dscript
   n_pairs: -1
-  model: samsl/dscript_human_v1
+  model: samsl/topsy_turvy_human_v1
   device: 0
 
 # DSD Parameters
