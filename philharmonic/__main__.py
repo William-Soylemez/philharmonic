@@ -8,6 +8,7 @@ from . import (
     build_go_map,
     cluster_network,
     conduct,
+    filter_seqs,
     generate_candidates,
     summarize_clusters,
     write_protein_table,
@@ -51,6 +52,7 @@ app.command("summarize-clusters")(summarize_clusters.main)
 app.command("add-cluster-functions")(add_cluster_functions.main)
 app.command("cluster-network")(cluster_network.main)
 app.command("build-cluster-graph")(build_cluster_graph.main)
+app.command("filter-seqs")(filter_seqs.main)
 app.command("generate-candidates")(generate_candidates.main)
 app.command("write-protein-table")(write_protein_table.main)
 
