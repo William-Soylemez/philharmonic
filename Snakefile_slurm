@@ -86,7 +86,6 @@ rule candidates:
         pfam_gobp = "shared/pfam_gobp_most_specific.txt",
         sequences = "{species}_results/{species}.fasta",
         go_database = "shared/go.obo",
-        go_filter = config['go_filter_path'],
     output:
         kept_proteins = "{species}_results/{species}_kept_proteins.txt",
         candidates = "{species}_results/{species}_candidates.tsv",

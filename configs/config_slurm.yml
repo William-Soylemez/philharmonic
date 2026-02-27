@@ -10,7 +10,7 @@ seed: 42
 # hmmscan Parameters
 hmmscan:
   path: hmmscan
-  threads: 32
+  threads: 144
 
 # D-SCRIPT Parameters
 dscript:
