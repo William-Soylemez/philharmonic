@@ -27,7 +27,7 @@ def add_GO_function(
     """
     go_terms: dict[str, int] = dict()
     for protein in cluster["members"]:
-        if protein in go_map:
+        if protein in go_map and isinstance(go_map[protein], list):
             for gid in set(go_map[protein]):
                 if go_db is not None:
                     if gid not in go_db:
