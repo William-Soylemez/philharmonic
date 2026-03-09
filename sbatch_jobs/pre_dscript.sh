@@ -18,6 +18,5 @@ export OPENAI_API_KEY=""
 
 cd philharmonic
 mkdir -p ${SPECIES}_results
-philharmonic 
 snakemake --snakefile Snakefile_slurm --configfile configs/config_slurm.yml -j144 \
     ${SPECIES}_results/${SPECIES}_candidates.tsv

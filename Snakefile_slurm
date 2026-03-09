@@ -55,9 +55,36 @@ rule setup:
         for c in commands:
             shell(c)
 
+rule filter_seqs:
+    input:
+        unfiltered = "{species}_results/{species}_unfiltered.fasta",
+    output:
+        filtered = "{species}_results/{species}_filtered.fasta",
+        clean = "{species}_results/{species}_clean.fasta",
+    log:
+        "{species}_results/logs/filter_seqs.log",
+    shell:
+        """
+        philharmonic filter-seqs {input.unfiltered} {output.filtered} > {log} 2>&1 && \
+        sed 's/^\\(>[^ ]*\\).*/\\1/' {output.filtered} > {output.clean} 2>> {log}
+        """
+
+rule embed:
+    input:
+        sequences = "{species}_results/{species}_clean.fasta",
+    output:
+        embeddings = "{species}_results/{species}_embed.h5",
+    log:
+        "{species}_results/logs/embed.log",
+    resources:
+        nvidia_gpu=1,
+        time="04:00:00",
+    shell:
+        "dscript embed --seqs {input.sequences} --outfile {output.embeddings} --device 0 > {log} 2>&1"
+
 rule hmmscan:
     input:
-        sequences = "{species}_results/{species}.fasta",
+        sequences = "{species}_results/{species}_filtered.fasta",
         pfam_database = "shared/Pfam-A.hmm",
         pfam_h3m = "shared/Pfam-A.hmm.h3m",
         pfam_h3i = "shared/Pfam-A.hmm.h3i",
@@ -84,7 +111,7 @@ rule candidates:
     input:
         hhtblout = "{species}_results/{species}_hmmscan.tblout",
         pfam_gobp = "shared/pfam_gobp_most_specific.txt",
-        sequences = "{species}_results/{species}.fasta",
+        sequences = "{species}_results/{species}_clean.fasta",
         go_database = "shared/go.obo",
     output:
         kept_proteins = "{species}_results/{species}_kept_proteins.txt",
@@ -112,7 +139,7 @@ rule candidates:
 
 rule dscript:
     input:
-        sequences = "{species}_results/{species}.fasta",
+        sequences = "{species}_results/{species}_clean.fasta",
         candidates = "{species}_results/{species}_candidates.tsv",
     output:
         network = "{species}_results/{species}_network.positive.tsv",
