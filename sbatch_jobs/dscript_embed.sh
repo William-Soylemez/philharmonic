@@ -13,9 +13,6 @@ source venv/bin/activate
 
 export SPECIES=$1
 
-cd philharmonic
-mkdir -p ${SPECIES}_results
-cd ${SPECIES}_results
-sed 's/^\(>[^ ]*\).*/\1/' ${SPECIES}.fasta > ${SPECIES}_clean.fasta
+cd philharmonic/${SPECIES}_results
 dscript embed --seqs ${SPECIES}_clean.fasta --outfile ${SPECIES}_embed.h5 --device 0
 mkdir -p dscript_work
