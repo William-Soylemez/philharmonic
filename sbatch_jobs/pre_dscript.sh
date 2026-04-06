@@ -12,7 +12,7 @@ export SPECIES=$1
 
 cd $SCRATCH
 module load gcc cuda python3
-source venv/bin/activate
+source $WORK/venv/bin/activate
 
 export OPENAI_API_KEY=""
 

@@ -12,7 +12,7 @@ export SPECIES=$1
 
 cd $SCRATCH
 module load gcc cuda python3
-source venv/bin/activate
+source $WORK/venv/bin/activate
 
 cd philharmonic/${SPECIES}_results
 TASKFILE=$(ls dscript_work/dscript_*_tasks.sh)

@@ -9,7 +9,7 @@
 
 cd $SCRATCH
 module load gcc cuda python3
-source venv/bin/activate
+source $WORK/venv/bin/activate
 
 export SPECIES=$1
 

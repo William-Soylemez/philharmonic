@@ -13,7 +13,7 @@ export SPECIES=$1
 # Load necessary modules and activate virtual environment
 cd $SCRATCH
 module load gcc cuda python3
-source venv/bin/activate
+source $WORK/venv/bin/activate
 
 # Environment variables
 export SNAKE="snakemake --snakefile Snakefile_slurm --configfile configs/config_slurm.yml --cores 144 --rerun-incomplete"
