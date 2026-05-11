@@ -26,7 +26,7 @@ module load gcc python3
 source "$WORK/venv/bin/activate"
 cd philharmonic
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PY_SCRIPT="sbatch_jobs/bulk_download_filter.py"
 
 ARGS=()
 FILE_ARG=""
@@ -41,7 +41,7 @@ else
     done
 fi
 
-python "$SCRIPT_DIR/bulk_download_filter.py" \
+python "$PY_SCRIPT" \
     $FILE_ARG \
     --jobs "${SLURM_CPUS_PER_TASK:-8}" \
     --continue-on-error \
