@@ -1,22 +1,27 @@
 #!/bin/bash
 #SBATCH --job-name=pre_dscript
-#SBATCH --output=pre_dscript_%j.out
-#SBATCH --error=pre_dscript_%j.err
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
 #SBATCH --time=06:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=144
 #SBATCH --mem=0
 
-export SPECIES=$1
+SPECIES=$1
+PHILHARMONIC_CODE=$WORK/philharmonic
+RESULTS_BASE=$WORK/philharmonic_results/bulk_results
 
-cd $SCRATCH
+mkdir -p "$RESULTS_BASE/${SPECIES}_results/logs"
+exec > "$RESULTS_BASE/${SPECIES}_results/logs/pre_dscript_${SLURM_JOB_ID}.out" 2>&1
+
 module load gcc cuda python3
 source $WORK/venv/bin/activate
 
 export OPENAI_API_KEY=""
 
-cd philharmonic
-mkdir -p ${SPECIES}_results
-snakemake --snakefile Snakefile_slurm --configfile configs/config_slurm.yml -j144 \
-    ${SPECIES}_results/${SPECIES}_candidates.tsv
+cd "$RESULTS_BASE"
+snakemake --snakefile "$PHILHARMONIC_CODE/Snakefile_slurm" \
+    --configfile "$PHILHARMONIC_CODE/configs/config_slurm.yml" \
+    -j144 \
+    "${SPECIES}_results/${SPECIES}_candidates.tsv"
