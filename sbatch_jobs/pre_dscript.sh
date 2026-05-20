@@ -23,5 +23,6 @@ export OPENAI_API_KEY=""
 cd "$RESULTS_BASE"
 snakemake --snakefile "$PHILHARMONIC_CODE/Snakefile_slurm" \
     --configfile "$PHILHARMONIC_CODE/configs/config_slurm.yml" \
+    --nolock \
     -j144 \
     "${SPECIES}_results/${SPECIES}_candidates.tsv"
