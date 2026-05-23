@@ -61,11 +61,4 @@ print(pairs, split_blocks, n_jobs, pairs_per_job)
         --workdir "$SPECIES_DIR/dscript_work" \
         --split_blocks "$SPLIT_BLOCKS" \
         --blocks 10
-
-    mkdir -p "$SPECIES_DIR/logs"
-    sbatch -p gh \
-        --array="1-${N_JOBS}" \
-        --output="$SPECIES_DIR/logs/dscript_%A_%a.out" \
-        --error="$SPECIES_DIR/logs/dscript_%A_%a.err" \
-        "$PHILHARMONIC_CODE/sbatch_jobs/dscript_array.sh" "$ACC"
 done
