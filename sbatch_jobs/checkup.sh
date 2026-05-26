@@ -12,10 +12,10 @@ else
     ACCS=("$@")
 fi
 
-printf '%-30s  %-10s %-12s %-10s %-20s %-10s\n' \
-    accession filtered candidates embedded inference postproc
-printf '%-30s  %-10s %-12s %-10s %-20s %-10s\n' \
-    '------------------------------' '----------' '------------' '----------' '--------------------' '----------'
+printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
+    accession filtered candidates embedded split inference postproc
+printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
+    '------------------------------' '----------' '------------' '----------' '----------' '--------------------' '----------'
 
 for ACC in "${ACCS[@]}"; do
     SPECIES_DIR="$RESULTS_BASE/${ACC}_results"
@@ -26,8 +26,10 @@ for ACC in "${ACCS[@]}"; do
 
     TASKFILE=$(ls "$SPECIES_DIR/dscript_work"/dscript_*_tasks.sh 2>/dev/null | head -1)
     if [[ -z "$TASKFILE" ]]; then
-        INFER="not staged"
+        SPLIT="no"
+        INFER="—"
     else
+        SPLIT="yes"
         N_TASKS=$(wc -l < "$TASKFILE")
         N_DONE=$(ls "$SPECIES_DIR/dscript_work"/predictions_task_*.positive.tsv 2>/dev/null | wc -l)
         if [[ $N_DONE -eq $N_TASKS ]]; then
@@ -39,6 +41,6 @@ for ACC in "${ACCS[@]}"; do
 
     [[ -f "$SPECIES_DIR/${ACC}.zip" ]] && POST="yes" || POST="no"
 
-    printf '%-30s  %-10s %-12s %-10s %-20s %-10s\n' \
-        "$ACC" "$FILTERED" "$CANDS" "$EMBED" "$INFER" "$POST"
+    printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
+        "$ACC" "$FILTERED" "$CANDS" "$EMBED" "$SPLIT" "$INFER" "$POST"
 done
