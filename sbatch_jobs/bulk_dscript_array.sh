@@ -29,9 +29,14 @@ for ACC in "${ACCS[@]}"; do
 
     N=$(wc -l < "$TASKFILE")
     mkdir -p "$SPECIES_DIR/logs"
-    sbatch -p gh \
+    RESULT=$(sbatch -p gh \
         --array="1-${N}" \
         --output="$SPECIES_DIR/logs/dscript_%A_%a.out" \
         --error="$SPECIES_DIR/logs/dscript_%A_%a.err" \
-        "$PHILHARMONIC_CODE/sbatch_jobs/dscript_array.sh" "$ACC"
+        "$PHILHARMONIC_CODE/sbatch_jobs/dscript_array.sh" "$ACC" 2>&1)
+    if [[ $? -eq 0 ]]; then
+        echo "[$ACC] submitted $N-task array — $RESULT"
+    else
+        echo "[$ACC] FAILED — $RESULT"
+    fi
 done
