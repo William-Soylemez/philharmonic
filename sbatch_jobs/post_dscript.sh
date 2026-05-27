@@ -1,25 +1,33 @@
 #!/bin/bash
 #SBATCH --job-name=post_dscript
-#SBATCH --output=post_dscript_%j.out
-#SBATCH --error=post_dscript_%j.err
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
 #SBATCH --time=04:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=144
 #SBATCH --mem=0
 
-export SPECIES=$1
+SPECIES=$1
+PHILHARMONIC_CODE=$WORK/philharmonic
+RESULTS_BASE=$WORK/philharmonic_results/bulk_results
+SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
 
-# Load necessary modules and activate virtual environment
-cd $SCRATCH
+mkdir -p "$SPECIES_DIR/logs"
+exec > "$SPECIES_DIR/logs/post_dscript_${SLURM_JOB_ID}.out" 2>&1
+
 module load gcc cuda python3
 source $WORK/venv/bin/activate
+source $WORK/.env_secrets
 
-# Environment variables
-export SNAKE="snakemake --snakefile Snakefile_slurm --configfile configs/config_slurm.yml --cores 144 --rerun-incomplete"
-export OPENAI_API_KEY=""
+cd "$RESULTS_BASE"
+cat "$SPECIES_DIR/dscript_work"/predictions_task_*.positive.tsv \
+    > "$SPECIES_DIR/${SPECIES}_network.positive.tsv"
 
-# Run the Snakemake workflow
-cd $SCRATCH/philharmonic
-cat ${SPECIES}_results/dscript_work/predictions_task_*.positive.tsv > ${SPECIES}_results/${SPECIES}_network.positive.tsv
-$SNAKE ${SPECIES}_results/${SPECIES}.zip
+snakemake \
+    --snakefile "$PHILHARMONIC_CODE/Snakefile_slurm" \
+    --configfile "$PHILHARMONIC_CODE/configs/config_slurm.yml" \
+    --cores 144 \
+    --rerun-incomplete \
+    --nolock \
+    "${SPECIES}_results/${SPECIES}.zip"
