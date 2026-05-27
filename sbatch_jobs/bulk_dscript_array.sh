@@ -28,6 +28,11 @@ for ACC in "${ACCS[@]}"; do
     fi
 
     N=$(wc -l < "$TASKFILE")
+    N_DONE=$(ls "$SPECIES_DIR/dscript_work"/predictions_task_*.positive.tsv 2>/dev/null | wc -l)
+    if [[ $N_DONE -eq $N ]]; then
+        echo "[$ACC] all $N tasks already done, skipping"
+        continue
+    fi
     mkdir -p "$SPECIES_DIR/logs"
     RESULT=$(sbatch -p gh \
         --array="1-${N}" \
