@@ -12,17 +12,20 @@ else
     ACCS=("$@")
 fi
 
-printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
-    accession filtered candidates embedded split inference postproc
-printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
-    '------------------------------' '----------' '------------' '----------' '----------' '--------------------' '----------'
+printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s %-10s %-10s\n' \
+    accession filtered candidates embedded split inference clustered annotated zip
+printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s %-10s %-10s\n' \
+    '------------------------------' '----------' '------------' '----------' '----------' '--------------------' '----------' '----------' '----------'
 
 for ACC in "${ACCS[@]}"; do
     SPECIES_DIR="$RESULTS_BASE/${ACC}_results"
 
-    [[ -f "$SPECIES_DIR/${ACC}_clean.fasta" ]]    && FILTERED="yes" || FILTERED="no"
-    [[ -f "$SPECIES_DIR/${ACC}_candidates.tsv" ]] && CANDS="yes"    || CANDS="no"
-    [[ -f "$EMBEDDINGS_DIR/${ACC}_embed.h5" ]]    && EMBED="yes"    || EMBED="no"
+    [[ -f "$SPECIES_DIR/${ACC}_clean.fasta" ]]        && FILTERED="yes" || FILTERED="no"
+    [[ -f "$SPECIES_DIR/${ACC}_candidates.tsv" ]]     && CANDS="yes"    || CANDS="no"
+    [[ -f "$EMBEDDINGS_DIR/${ACC}_embed.h5" ]]        && EMBED="yes"    || EMBED="no"
+    [[ -f "$SPECIES_DIR/${ACC}_clusters.pre.json" ]]  && CLUST="yes"    || CLUST="no"
+    [[ -f "$SPECIES_DIR/${ACC}_human_readable.txt" ]] && ANNOT="yes"    || ANNOT="no"
+    [[ -f "$SPECIES_DIR/${ACC}.zip" ]]                && ZIP="yes"      || ZIP="no"
 
     TASKFILE=$(ls "$SPECIES_DIR/dscript_work"/dscript_*_tasks.sh 2>/dev/null | head -1)
     if [[ -z "$TASKFILE" ]]; then
@@ -39,8 +42,6 @@ for ACC in "${ACCS[@]}"; do
         fi
     fi
 
-    [[ -f "$SPECIES_DIR/${ACC}.zip" ]] && POST="yes" || POST="no"
-
-    printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s\n' \
-        "$ACC" "$FILTERED" "$CANDS" "$EMBED" "$SPLIT" "$INFER" "$POST"
+    printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s %-10s %-10s\n' \
+        "$ACC" "$FILTERED" "$CANDS" "$EMBED" "$SPLIT" "$INFER" "$CLUST" "$ANNOT" "$ZIP"
 done
