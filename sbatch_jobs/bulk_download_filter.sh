@@ -12,17 +12,11 @@
 #   sbatch sbatch_jobs/bulk_download_filter.sh <accessions_file>
 #   sbatch sbatch_jobs/bulk_download_filter.sh GCF_002263795.3 GCF_000001405.40
 
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
-GLOBAL_LOGS=$WORK/philharmonic_results/logs
+source $WORK/philharmonic/sbatch_jobs/common.sh
 
-mkdir -p "$RESULTS_BASE" "$GLOBAL_LOGS"
-exec > "$GLOBAL_LOGS/bulk_download_filter_${SLURM_JOB_ID}.out" 2>&1
-
-module load gcc cuda python3
-source $WORK/venv/bin/activate
-
-export OPENAI_API_KEY=""
+mkdir -p "$RESULTS_BASE"
+redirect_log "$GLOBAL_LOGS/bulk_download_filter_${SLURM_JOB_ID}.out"
+activate_env
 
 cd "$RESULTS_BASE"
 

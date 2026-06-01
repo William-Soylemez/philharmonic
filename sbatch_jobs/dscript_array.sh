@@ -8,15 +8,12 @@
 #SBATCH --mem=0
 #SBATCH --array=1-1
 
+source $WORK/philharmonic/sbatch_jobs/common.sh
+
 SPECIES=$1
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
 SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
-
-mkdir -p "$SPECIES_DIR/logs"
-exec > "$SPECIES_DIR/logs/dscript_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out" 2>&1
-
-module load gcc cuda python3
-source $WORK/venv/bin/activate
+redirect_log "$SPECIES_DIR/logs/dscript_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out"
+activate_env
 
 TASKFILE=$(ls "$SPECIES_DIR/dscript_work"/dscript_*_tasks.sh)
 sed -n "${SLURM_ARRAY_TASK_ID}p" "$TASKFILE" | bash

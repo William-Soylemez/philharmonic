@@ -8,16 +8,12 @@
 #SBATCH --cpus-per-task=144
 #SBATCH --mem=0
 
+source $WORK/philharmonic/sbatch_jobs/common.sh
+
 SPECIES=$1
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
 SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
-
-mkdir -p "$SPECIES_DIR/logs"
-exec > "$SPECIES_DIR/logs/post_cluster_${SLURM_JOB_ID}.out" 2>&1
-
-module load gcc cuda python3
-source $WORK/venv/bin/activate
+redirect_log "$SPECIES_DIR/logs/post_cluster_${SLURM_JOB_ID}.out"
+activate_env
 
 cd "$RESULTS_BASE"
 cat "$SPECIES_DIR/dscript_work"/predictions_task_*.positive.tsv \

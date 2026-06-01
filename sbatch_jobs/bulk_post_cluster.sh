@@ -4,14 +4,8 @@
 #   ./bulk_post_cluster.sh accessions.txt
 # Skips species already clustered or whose dscript inference is incomplete.
 
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
-
-if [[ $# -eq 1 && -f "$1" ]]; then
-    mapfile -t ACCS < <(grep -v '^\s*#' "$1" | grep -v '^\s*$')
-else
-    ACCS=("$@")
-fi
+source $WORK/philharmonic/sbatch_jobs/common.sh
+parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do
     SPECIES_DIR="$RESULTS_BASE/${ACC}_results"

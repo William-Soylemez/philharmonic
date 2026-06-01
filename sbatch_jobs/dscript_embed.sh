@@ -7,15 +7,12 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=0
 
+source $WORK/philharmonic/sbatch_jobs/common.sh
+
 SPECIES=$1
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
-EMBEDDINGS_DIR=$SCRATCH/philharmonic_embeddings
-
-mkdir -p "$RESULTS_BASE/${SPECIES}_results/logs" "$EMBEDDINGS_DIR"
-exec > "$RESULTS_BASE/${SPECIES}_results/logs/dscript_embed_${SLURM_JOB_ID}.out" 2>&1
-
-module load gcc cuda python3
-source $WORK/venv/bin/activate
+redirect_log "$RESULTS_BASE/${SPECIES}_results/logs/dscript_embed_${SLURM_JOB_ID}.out"
+mkdir -p "$EMBEDDINGS_DIR"
+activate_env
 
 dscript embed \
     --seqs "$RESULTS_BASE/${SPECIES}_results/${SPECIES}_clean.fasta" \

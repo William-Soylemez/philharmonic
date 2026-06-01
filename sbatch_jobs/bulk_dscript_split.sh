@@ -12,22 +12,11 @@
 #   sbatch sbatch_jobs/bulk_dscript_split.sh accessions.txt
 #   sbatch sbatch_jobs/bulk_dscript_split.sh GCF_002263795.3 GCF_000001405.40 ...
 
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
-EMBEDDINGS_DIR=$SCRATCH/philharmonic_embeddings
-GLOBAL_LOGS=$WORK/philharmonic_results/logs
+source $WORK/philharmonic/sbatch_jobs/common.sh
 
-mkdir -p "$GLOBAL_LOGS"
-exec > "$GLOBAL_LOGS/bulk_dscript_split_${SLURM_JOB_ID}.out" 2>&1
-
-module load gcc cuda python3
-source $WORK/venv/bin/activate
-
-if [[ $# -eq 1 && -f "$1" ]]; then
-    mapfile -t ACCS < <(grep -v '^\s*#' "$1" | grep -v '^\s*$')
-else
-    ACCS=("$@")
-fi
+redirect_log "$GLOBAL_LOGS/bulk_dscript_split_${SLURM_JOB_ID}.out"
+activate_env
+parse_accessions "$@"
 
 printf '%-30s %10s %15s %13s %8s %15s\n' \
     species proteins pairs split_blocks n_jobs pairs_per_job
