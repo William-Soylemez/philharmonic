@@ -5,8 +5,11 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
+
+import status
 
 NCBI_BASE = "https://ftp.ncbi.nlm.nih.gov/genomes/all"
 ACCESSION_RE = re.compile(r"^(GCF|GCA)_(\d{3})(\d{3})(\d{3})\.\d+$")
@@ -57,7 +60,20 @@ def stage_unfiltered(accession: str, keep_gz: bool) -> Path:
     gz_path = species_dir / fname
 
     print(f"[{accession}] downloading {url}", flush=True)
-    download(url, gz_path)
+    try:
+        download(url, gz_path)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            # GenBank/GCA assemblies without RefSeq annotation often publish no
+            # curated _protein.faa.gz. Fail loudly rather than silently falling
+            # back to _translated_cds.faa.gz, whose IDs and redundancy differ.
+            raise RuntimeError(
+                f"{accession}: no curated _protein.faa.gz published at {url} "
+                f"(typical for unannotated GenBank/GCA assemblies). Handle this "
+                f"accession manually — _translated_cds.faa.gz may exist but uses a "
+                f"different protein-ID convention and is not used automatically."
+            ) from e
+        raise
     gunzip(gz_path, unfiltered)
     if not keep_gz:
         gz_path.unlink()
@@ -107,10 +123,13 @@ def main() -> int:
 
     failures: list[tuple[str, str]] = []
     for acc in accs:
+        species_dir = f"{acc}_results"
         try:
             stage_unfiltered(acc, args.keep_gz)
             run_snakemake(acc, args.snakefile, args.configfile, args.jobs, fwd)
+            status.set_status(species_dir, "download_filter", "done")
         except Exception as e:
+            status.set_status(species_dir, "download_filter", "error", message=str(e))
             print(f"[{acc}] ERROR: {e}", file=sys.stderr, flush=True)
             failures.append((acc, str(e)))
             if not args.continue_on_error:

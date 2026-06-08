@@ -48,6 +48,7 @@ print(pairs, split_blocks, n_jobs, pairs_per_job)
         --proteins "$SPECIES_DIR/${ACC}_proteins_list.txt" \
         --embeddings "$EMBEDDINGS_DIR/${ACC}_embed.h5" \
         --workdir "$SPECIES_DIR/dscript_work" \
+        --model "samsl/dscript_human_v1" \
         --split_blocks "$SPLIT_BLOCKS" \
         --blocks 10
 done
