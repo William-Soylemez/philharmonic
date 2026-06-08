@@ -3,18 +3,30 @@
 #
 # Usage:
 #   ./benchmark_completed.sh accessions.txt
-#   ./benchmark_completed.sh GCF_002263795.3 GCF_000001405.40 ...
+#   ./benchmark_completed.sh [--perfect] GCF_002263795.3 GCF_000001405.40 ...
 #
 # For each species where every prediction task is present, sums the wall time of
-# all dscript array tasks via sacct (1 GH200 node = 1 GPU, so task-hours =
+# the dscript array tasks via sacct (1 GH200 node = 1 GPU, so task-hours =
 # GPU-hours) and reports it next to the protein-pair count. The overall
 # pairs/GPU-hour at the bottom is the throughput to feed into benchmark_pairs.sh.
 #
-# Note: GPU time is summed across ALL array tasks ever run for the species,
-# including retries/timeouts, so it reflects real GPU time spent (not idealized).
+# Time accounting modes:
+#   default     sum ALL array tasks ever run (every state, every resubmission) =
+#               real GPU time spent, including retries/timeouts.
+#   --perfect   count one COMPLETED run per task index = ideal "everything went
+#               right the first time" GPU time, retries excluded.
 
 source $WORK/philharmonic/sbatch_jobs/common.sh
-parse_accessions "$@"
+
+PERFECT=0
+ARGS=()
+for a in "$@"; do
+    case "$a" in
+        --perfect|--ideal|--no-retries) PERFECT=1 ;;
+        *) ARGS+=("$a") ;;
+    esac
+done
+parse_accessions "${ARGS[@]}"
 
 count_proteins() {
     local dir="$1" acc="$2"
@@ -60,12 +72,28 @@ for ACC in "${ACCS[@]}"; do
         continue
     fi
 
-    SECS=0
-    for AID in $AIDS; do
-        S=$(sacct -X -n -P -j "$AID" --format=ElapsedRaw 2>/dev/null \
-            | awk '{s+=$1} END{print s+0}')
-        SECS=$(awk -v a="$SECS" -v b="$S" 'BEGIN{printf "%.0f", a+b}')
-    done
+    if [[ "$PERFECT" == 1 ]]; then
+        # One COMPLETED run per task index, deduped across all array job IDs.
+        read SECS NCOMP < <(
+            for AID in $AIDS; do
+                sacct -X -n -P -j "$AID" --format=JobID,State,ElapsedRaw 2>/dev/null
+            done | awk -F'|' '
+                $2=="COMPLETED" { n=split($1,a,"_"); t[a[n]]=$3 }  # last COMPLETED per task wins
+                END { s=0; c=0; for (k in t) { s+=t[k]; c++ } printf "%.0f %d", s, c }'
+        )
+        [[ -z "$SECS" ]] && { SECS=0; NCOMP=0; }
+        if [[ "$NCOMP" -ne "$N_TASKS" ]]; then
+            echo "[$ACC] warn: only $NCOMP/$N_TASKS tasks have a COMPLETED sacct record; perfect time may be understated"
+        fi
+    else
+        # Real time: sum every task of every submission, regardless of state.
+        SECS=0
+        for AID in $AIDS; do
+            S=$(sacct -X -n -P -j "$AID" --format=ElapsedRaw 2>/dev/null \
+                | awk '{s+=$1} END{print s+0}')
+            SECS=$(awk -v a="$SECS" -v b="$S" 'BEGIN{printf "%.0f", a+b}')
+        done
+    fi
 
     if [[ "$SECS" -eq 0 ]]; then
         echo "[$ACC] warn: sacct returned no time (accounting aged out?), counting pairs only"
@@ -85,6 +113,11 @@ TOTAL_HOURS=$(awk -v s="$TOTAL_SECS" 'BEGIN{printf "%.2f", s/3600}')
 OVERALL_PPH=$(awk -v p="$TOTAL_PAIRS" -v s="$TOTAL_SECS" 'BEGIN{ if(s>0) printf "%.0f", p/(s/3600); else print "NA"}')
 
 echo
+if [[ "$PERFECT" == 1 ]]; then
+    echo "Mode:                   perfect (one COMPLETED run per task; retries excluded)"
+else
+    echo "Mode:                   actual (all tasks/resubmissions summed; retries included)"
+fi
 echo "Completed species:      $N_COMPLETED"
 echo "Total pairs:            $TOTAL_PAIRS"
 echo "Total GPU-hours:        $TOTAL_HOURS"
