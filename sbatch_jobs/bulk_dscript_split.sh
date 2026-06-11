@@ -44,11 +44,22 @@ print(pairs, split_blocks, n_jobs, pairs_per_job)
     printf '%-30s %10d %15d %13d %8d %15d\n' \
         "$ACC" "$PROTEINS" "$PAIRS" "$SPLIT_BLOCKS" "$N_JOBS" "$PAIRS_PER_JOB"
 
-    dscript split_tasks \
+    if dscript split_tasks \
         --proteins "$SPECIES_DIR/${ACC}_proteins_list.txt" \
         --embeddings "$EMBEDDINGS_DIR/${ACC}_embed.h5" \
         --workdir "$SPECIES_DIR/dscript_work" \
         --model "samsl/dscript_human_v1" \
         --split_blocks "$SPLIT_BLOCKS" \
-        --blocks 10
+        --blocks 10; then
+        record_status "$SPECIES_DIR" split done
+        # Seed the inference array tracker with the actual number of tasks
+        # produced (= lines in the generated task file), so checkup can show m/n.
+        TASKFILE=$(ls "$SPECIES_DIR/dscript_work"/dscript_*_tasks.sh 2>/dev/null | head -1)
+        if [[ -n "$TASKFILE" ]]; then
+            init_inference "$SPECIES_DIR" "$(wc -l < "$TASKFILE")"
+        fi
+    else
+        record_status "$SPECIES_DIR" split error \
+            "dscript split_tasks failed (job ${SLURM_JOB_ID}); see bulk_dscript_split_${SLURM_JOB_ID}.out"
+    fi
 done

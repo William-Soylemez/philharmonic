@@ -10,13 +10,18 @@
 source $WORK/philharmonic/sbatch_jobs/common.sh
 
 SPECIES=$1
-redirect_log "$RESULTS_BASE/${SPECIES}_results/logs/dscript_embed_${SLURM_JOB_ID}.out"
+SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
+redirect_log "$SPECIES_DIR/logs/dscript_embed_${SLURM_JOB_ID}.out"
 mkdir -p "$EMBEDDINGS_DIR"
 activate_env
 
-dscript embed \
-    --seqs "$RESULTS_BASE/${SPECIES}_results/${SPECIES}_clean.fasta" \
+if dscript embed \
+    --seqs "$SPECIES_DIR/${SPECIES}_clean.fasta" \
     --outfile "$EMBEDDINGS_DIR/${SPECIES}_embed.h5" \
-    --device 0
-
-mkdir -p "$RESULTS_BASE/${SPECIES}_results/dscript_work"
+    --device 0; then
+    mkdir -p "$SPECIES_DIR/dscript_work"
+    record_status "$SPECIES_DIR" embed done
+else
+    record_status "$SPECIES_DIR" embed error \
+        "dscript embed failed (job ${SLURM_JOB_ID}); see logs/dscript_embed_${SLURM_JOB_ID}.out"
+fi

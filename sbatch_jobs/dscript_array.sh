@@ -16,4 +16,8 @@ redirect_log "$SPECIES_DIR/logs/dscript_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK
 activate_env
 
 TASKFILE=$(ls "$SPECIES_DIR/dscript_work"/dscript_*_tasks.sh)
-sed -n "${SLURM_ARRAY_TASK_ID}p" "$TASKFILE" | bash
+if sed -n "${SLURM_ARRAY_TASK_ID}p" "$TASKFILE" | bash; then
+    record_task "$SPECIES_DIR" "$SLURM_ARRAY_TASK_ID" done
+else
+    record_task "$SPECIES_DIR" "$SLURM_ARRAY_TASK_ID" failed
+fi

@@ -17,10 +17,15 @@ activate_env
 source $WORK/.env_secrets
 
 cd "$RESULTS_BASE"
-snakemake \
+if snakemake \
     --snakefile "$PHILHARMONIC_CODE/Snakefile_slurm" \
     --configfile "$PHILHARMONIC_CODE/configs/config_slurm.yml" \
     --cores 8 \
     --rerun-incomplete \
     --nolock \
-    "${SPECIES}_results/${SPECIES}.zip"
+    "${SPECIES}_results/${SPECIES}.zip"; then
+    record_status "$SPECIES_DIR" describe done
+else
+    record_status "$SPECIES_DIR" describe error \
+        "post_describe snakemake failed (job ${SLURM_JOB_ID}); see logs/post_describe_${SLURM_JOB_ID}.out"
+fi

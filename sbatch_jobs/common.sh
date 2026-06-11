@@ -32,6 +32,18 @@ record_status() {
     python3 "$PHILHARMONIC_CODE/sbatch_jobs/status.py" set "$@"
 }
 
+# Seed the inference (job-array) step with its total task count, at split time.
+# Usage: init_inference <species_dir> <n_tasks>
+init_inference() {
+    python3 "$PHILHARMONIC_CODE/sbatch_jobs/status.py" init-inference "$@"
+}
+
+# Record a single array task's outcome (race-free per-task marker).
+# Usage: record_task <species_dir> <task_id> <done|failed>
+record_task() {
+    python3 "$PHILHARMONIC_CODE/sbatch_jobs/status.py" task "$@"
+}
+
 # Populate the ACCS array from either a single accessions file or CLI args.
 # Usage: parse_accessions "$@"
 parse_accessions() {

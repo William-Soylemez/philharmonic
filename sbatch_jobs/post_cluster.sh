@@ -19,10 +19,15 @@ cd "$RESULTS_BASE"
 cat "$SPECIES_DIR/dscript_work"/predictions_task_*.positive.tsv \
     > "$SPECIES_DIR/${SPECIES}_network.positive.tsv"
 
-snakemake \
+if snakemake \
     --snakefile "$PHILHARMONIC_CODE/Snakefile_slurm" \
     --configfile "$PHILHARMONIC_CODE/configs/config_slurm.yml" \
     --cores 144 \
     --rerun-incomplete \
     --nolock \
-    "${SPECIES}_results/${SPECIES}_clusters.pre.json"
+    "${SPECIES}_results/${SPECIES}_clusters.pre.json"; then
+    record_status "$SPECIES_DIR" cluster done
+else
+    record_status "$SPECIES_DIR" cluster error \
+        "post_cluster snakemake failed (job ${SLURM_JOB_ID}); see logs/post_cluster_${SLURM_JOB_ID}.out"
+fi
