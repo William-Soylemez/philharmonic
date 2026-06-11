@@ -25,6 +25,13 @@ activate_env() {
     export OPENAI_API_KEY=""
 }
 
+# Record a pipeline step's status into the species status.json, mirroring what
+# bulk_download_filter.py does in Python.
+# Usage: record_status <species_dir> <step> <status> [message]
+record_status() {
+    python3 "$PHILHARMONIC_CODE/sbatch_jobs/status.py" set "$@"
+}
+
 # Populate the ACCS array from either a single accessions file or CLI args.
 # Usage: parse_accessions "$@"
 parse_accessions() {

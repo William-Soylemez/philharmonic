@@ -15,6 +15,7 @@ at a time as the pipeline is migrated onto this tracker; only download_filter is
 wired up so far.
 """
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,7 +23,7 @@ STATUS_FILE = "status.json"
 
 # Canonical step order, used by checkup for display. Steps not yet wired into the
 # pipeline simply show as "not started" until their job starts recording status.
-STEPS = ["download_filter"]
+STEPS = ["download_filter", "candidates"]
 
 
 def _path(species_dir) -> Path:
@@ -60,3 +61,22 @@ def set_status(species_dir, step, status, message=None) -> dict:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data, indent=2) + "\n")
     return entry
+
+
+def main(argv=None) -> int:
+    """CLI so shell jobs can record status:
+
+        python status.py set <species_dir> <step> <status> [message]
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    if len(argv) < 4 or argv[0] != "set":
+        print("usage: status.py set <species_dir> <step> <status> [message]", file=sys.stderr)
+        return 2
+    _, species_dir, step, st = argv[:4]
+    message = argv[4] if len(argv) > 4 else None
+    set_status(species_dir, step, st, message=message)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
