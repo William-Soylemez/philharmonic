@@ -1,8 +1,10 @@
 # python src/name_clusters.py --api_key {params.api_key} -o {output.human_readable} --go_db {input.go_database} -cfp {input.clusters}
 import json
 import os
+import random
 import shlex
 import subprocess as sp
+import time
 
 import regex as re
 import typer
@@ -59,17 +61,83 @@ LLM_SYSTEM_TEMPLATE = (
 )
 
 
-def llm_name_cluster(description, model="4o-mini", api_key=None):
-    os.environ["OPENAI_API_KEY"] = api_key
+# Substrings that mark a (retryable) rate-limit / transient-overload response
+# from the LLM provider. The `llm` CLI surfaces the provider's error text on
+# stderr, so we match against that.
+RATE_LIMIT_SIGNATURES = (
+    "rate limit",
+    "rate_limit",
+    "ratelimit",
+    "429",
+    "too many requests",
+    "quota",
+    "overloaded",
+    "temporarily unavailable",
+    "please try again",
+    "service unavailable",
+    "503",
+)
+
+# llm_confidence value that marks a previously failed naming attempt. The model
+# itself only ever emits None/Low/Medium/High (and a *name* of "Unknown" with
+# confidence None for no-connection clusters), so a confidence of exactly
+# "Unknown" is unambiguously our own failure sentinel from the except branch
+# below. Re-runs use this to re-call the LLM only for calls that failed before.
+FAILED_CONFIDENCE = "unknown"
+
+
+def _is_rate_limit_error(message: str) -> bool:
+    msg = message.lower()
+    return any(sig in msg for sig in RATE_LIMIT_SIGNATURES)
+
+
+def _call_llm(description, model, api_key):
+    """Single invocation of the `llm` CLI; raises ChildProcessError on stderr."""
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
     cmd = f"llm --system '{LLM_SYSTEM_TEMPLATE}' -m {model} '{description}' "
 
     proc = sp.Popen(shlex.split(cmd), stdout=sp.PIPE, stderr=sp.PIPE)
     out, err = proc.communicate()
     if err.decode("utf-8") != "":
         raise ChildProcessError(err.decode("utf-8"))
+    return out.decode("utf-8")
+
+
+def llm_name_cluster(
+    description,
+    model="4o-mini",
+    api_key=None,
+    max_retries=6,
+    base_delay=5.0,
+    max_delay=120.0,
+):
+    """Name a cluster with the LLM.
+
+    Retries on rate-limit / transient-overload errors with exponential backoff
+    plus jitter, so a burst of clusters doesn't get throttled into "Unknown".
+    Non-rate-limit errors are raised immediately for the caller to handle.
+    """
+    attempt = 0
+    while True:
+        try:
+            output = _call_llm(description, model, api_key)
+            break
+        except ChildProcessError as e:
+            if not _is_rate_limit_error(str(e)) or attempt >= max_retries:
+                raise
+            backoff = min(max_delay, base_delay * (2**attempt))
+            # Equal jitter: wait at least half the backoff, up to the full amount.
+            delay = backoff / 2 + random.uniform(0, backoff / 2)
+            attempt += 1
+            logger.warning(
+                f"Rate limited by LLM API (attempt {attempt}/{max_retries}); "
+                f"backing off {delay:.1f}s before retrying."
+            )
+            time.sleep(delay)
 
     reg = re.compile(r"(.*$)\s+(.*$)\s+(.*$)", re.MULTILINE)
-    regsearch = reg.search(out.decode("utf-8"))
+    regsearch = reg.search(output)
     name = regsearch.group(1)
     explanation = regsearch.group(2)
     confidence = regsearch.group(3)
@@ -79,6 +147,21 @@ def llm_name_cluster(description, model="4o-mini", api_key=None):
     logger.info(f"Confidence: {confidence}")
 
     return name, explanation, confidence
+
+
+def _needs_naming(clust: dict, force: bool) -> bool:
+    """Whether a cluster should be (re)named.
+
+    Fresh clusters (no llm_name) are always named. Re-running over an
+    already-described clusters.json re-calls the LLM only for clusters whose
+    previous attempt failed (llm_confidence == "Unknown"), so a redo is cheap.
+    `force` re-names everything.
+    """
+    if force:
+        return True
+    if "llm_name" not in clust:
+        return True
+    return str(clust.get("llm_confidence", "")).strip().lower() == FAILED_CONFIDENCE
 
 
 @app.command()
@@ -94,6 +177,20 @@ def main(
     ),
     model: str = typer.Option("Meta-Llama-3-8B-Instruct", help="Language model to use"),
     api_key: str = typer.Option(None, help="OpenAI API key"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Re-name every cluster, even ones already named with a confident result.",
+    ),
+    max_retries: int = typer.Option(
+        6, help="Max retries on LLM API rate-limit errors (exponential backoff)."
+    ),
+    retry_base_delay: float = typer.Option(
+        5.0, help="Base seconds for rate-limit backoff."
+    ),
+    retry_max_delay: float = typer.Option(
+        120.0, help="Max seconds for a single rate-limit backoff wait."
+    ),
 ):
     """Summarize clusters"""
     clusters = load_cluster_json(cluster_file_path)
@@ -101,11 +198,20 @@ def main(
 
     if llm_name:
         for _, clust in tqdm(clusters.items()):
-            if not hasattr(clust, "llm_name"):
+            if _needs_naming(clust, force):
+                # Drop any stale fields from a prior failed attempt so they don't
+                # leak into the description we send to the LLM.
+                for k in ("llm_name", "llm_explanation", "llm_confidence"):
+                    clust.pop(k, None)
                 hr = print_cluster(clust, go_database, return_str=True)
                 try:
                     name, explanation, confidence = llm_name_cluster(
-                        hr, model=model, api_key=api_key
+                        hr,
+                        model=model,
+                        api_key=api_key,
+                        max_retries=max_retries,
+                        base_delay=retry_base_delay,
+                        max_delay=retry_max_delay,
                     )
                     clust["llm_name"] = name
                     clust["llm_explanation"] = explanation
@@ -116,9 +222,9 @@ def main(
                     clust["llm_explanation"] = "Unknown"
                     clust["llm_confidence"] = "Unknown"
 
-                clust["human_readable"] = print_cluster(
-                    clust, go_database, return_str=True
-                )
+            clust["human_readable"] = print_cluster(
+                clust, go_database, return_str=True
+            )
     else:
         for _, clust in tqdm(clusters.items()):
             clust["human_readable"] = print_cluster(clust, go_database, return_str=True)
