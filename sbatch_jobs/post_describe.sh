@@ -8,13 +8,13 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=0
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 SPECIES=$1
 SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
 redirect_log "$SPECIES_DIR/logs/post_describe_${SLURM_JOB_ID}.out"
 activate_env
-source $WORK/.env_secrets
+source /work/11301/wsoylemez/vista/.env_secrets
 
 cd "$RESULTS_BASE"
 if snakemake \

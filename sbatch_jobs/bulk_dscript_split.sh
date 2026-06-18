@@ -12,7 +12,7 @@
 #   sbatch sbatch_jobs/bulk_dscript_split.sh accessions.txt
 #   sbatch sbatch_jobs/bulk_dscript_split.sh GCF_002263795.3 GCF_000001405.40 ...
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 redirect_log "$GLOBAL_LOGS/bulk_dscript_split_${SLURM_JOB_ID}.out"
 activate_env

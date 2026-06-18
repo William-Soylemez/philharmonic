@@ -4,7 +4,7 @@
 #   ./bulk_dscript_array.sh accessions.txt
 # Skips species whose network file already exists.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do

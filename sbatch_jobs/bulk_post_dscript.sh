@@ -4,8 +4,8 @@
 #   ./bulk_post_dscript.sh accessions.txt
 # Skips species already done (zip exists) or whose dscript inference is incomplete.
 
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
+PHILHARMONIC_CODE=/work/11301/wsoylemez/vista/philharmonic
+RESULTS_BASE=/work/11301/wsoylemez/vista/philharmonic_results/bulk_results
 
 if [[ $# -eq 1 && -f "$1" ]]; then
     mapfile -t ACCS < <(grep -v '^\s*#' "$1" | grep -v '^\s*$')

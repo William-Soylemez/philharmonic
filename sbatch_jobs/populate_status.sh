@@ -13,7 +13,7 @@
 # Any options (--auto, --always-ask, --overwrite, --steps, --tail, --file) are
 # forwarded straight through to populate_status.py.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 python3 "$PHILHARMONIC_CODE/sbatch_jobs/populate_status.py" \
     --results-base "$RESULTS_BASE" \

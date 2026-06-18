@@ -4,7 +4,7 @@
 #   ./bulk_post_describe.sh accessions.txt
 # Skips species already described (zip exists) or not yet clustered.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do

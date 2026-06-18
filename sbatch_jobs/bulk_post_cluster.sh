@@ -4,7 +4,7 @@
 #   ./bulk_post_cluster.sh accessions.txt
 # Skips species already clustered or whose dscript inference is incomplete.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do

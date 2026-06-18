@@ -3,7 +3,7 @@
 #   ./bulk_pre_dscript.sh GCF_002263795.3 GCF_000001405.40 ...
 #   ./bulk_pre_dscript.sh accessions.txt
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do

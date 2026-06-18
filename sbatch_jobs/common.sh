@@ -2,12 +2,12 @@
 # Shared setup sourced by all sbatch_jobs scripts.
 # Defines common paths plus helper functions for logging, environment
 # activation, and accession parsing. Source it as the first line of a script:
-#   source $WORK/philharmonic/sbatch_jobs/common.sh
+#   source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
-PHILHARMONIC_CODE=$WORK/philharmonic
-RESULTS_BASE=$WORK/philharmonic_results/bulk_results
+PHILHARMONIC_CODE=/work/11301/wsoylemez/vista/philharmonic
+RESULTS_BASE=/work/11301/wsoylemez/vista/philharmonic_results/bulk_results
 EMBEDDINGS_DIR=$SCRATCH/philharmonic_embeddings
-GLOBAL_LOGS=$WORK/philharmonic_results/logs
+GLOBAL_LOGS=/work/11301/wsoylemez/vista/philharmonic_results/logs
 
 # Redirect all stdout/stderr to the given log file, creating its directory.
 # Call this before activate_env so module-load output is captured in the log.
@@ -18,10 +18,10 @@ redirect_log() {
 
 # Load modules and activate the venv. Sets an empty OPENAI_API_KEY so the
 # Snakefile's `envvars: OPENAI_API_KEY` requirement is satisfied; scripts that
-# need a real key should `source $WORK/.env_secrets` afterwards.
+# need a real key should `source /work/11301/wsoylemez/vista/.env_secrets` afterwards.
 activate_env() {
     module load gcc cuda python3
-    source $WORK/venv/bin/activate
+    source /work/11301/wsoylemez/vista/venv/bin/activate
     export OPENAI_API_KEY=""
 }
 

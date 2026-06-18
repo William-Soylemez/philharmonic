@@ -16,7 +16,7 @@
 #   --perfect   count one COMPLETED run per task index = ideal "everything went
 #               right the first time" GPU time, retries excluded.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 PERFECT=0
 ARGS=()
@@ -49,13 +49,13 @@ for ACC in "${ACCS[@]}"; do
     SPECIES_DIR="$RESULTS_BASE/${ACC}_results"
     WORKDIR="$SPECIES_DIR/dscript_work"
 
-    TASKFILE=$(ls "$WORKDIR"/dscript_*_tasks.sh 2>/dev/null | head -1)
+    TASKFILE=$(ls "/work/11301/wsoylemez/vistaDIR"/dscript_*_tasks.sh 2>/dev/null | head -1)
     if [[ -z "$TASKFILE" ]]; then
         echo "[$ACC] skip: not split"
         continue
     fi
     N_TASKS=$(wc -l < "$TASKFILE")
-    N_DONE=$(ls "$WORKDIR"/predictions_task_*.positive.tsv 2>/dev/null | wc -l)
+    N_DONE=$(ls "/work/11301/wsoylemez/vistaDIR"/predictions_task_*.positive.tsv 2>/dev/null | wc -l)
     if [[ "$N_TASKS" -eq 0 || "$N_DONE" -ne "$N_TASKS" ]]; then
         echo "[$ACC] skip: inference incomplete ($N_DONE/$N_TASKS)"
         continue

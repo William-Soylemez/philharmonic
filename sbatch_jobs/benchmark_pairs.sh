@@ -10,7 +10,7 @@
 # "Overall pairs/GPU-hour" from benchmark_completed.sh), also prints the estimated
 # total GPU-hours to run dscript inference across the whole suite.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 # Strip an optional trailing numeric rate before parsing accessions. Accessions
 # always contain letters/underscores, so a purely numeric arg is unambiguously

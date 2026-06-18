@@ -7,7 +7,7 @@
 # Shows every pipeline step (download_filter, candidates, embed, split,
 # inference, cluster, describe). Anything not yet recorded shows as "not started".
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 python3 "$PHILHARMONIC_CODE/sbatch_jobs/checkup_v2.py" "$RESULTS_BASE" "${ACCS[@]}"

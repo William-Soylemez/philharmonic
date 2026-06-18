@@ -14,7 +14,7 @@
 #               real GPU time, including failed/retried attempts.
 #   --perfect   count only the most recent COMPLETED embed run = ideal time.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 PERFECT=0
 ARGS=()

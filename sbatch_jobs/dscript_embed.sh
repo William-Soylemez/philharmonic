@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=0
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 SPECIES=$1
 SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"

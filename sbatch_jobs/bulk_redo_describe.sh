@@ -6,7 +6,7 @@
 # clusters that previously failed (llm_confidence == "Unknown"). Skips species
 # that were never described, and species with no remaining Unknown clusters.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 for ACC in "${ACCS[@]}"; do

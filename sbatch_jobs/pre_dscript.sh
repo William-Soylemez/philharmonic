@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=144
 #SBATCH --mem=0
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 SPECIES=$1
 redirect_log "$RESULTS_BASE/${SPECIES}_results/logs/pre_dscript_${SLURM_JOB_ID}.out"

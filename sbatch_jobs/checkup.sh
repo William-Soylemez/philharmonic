@@ -3,7 +3,7 @@
 #   ./checkup.sh GCF_002263795.3 GCF_000001405.40 ...
 #   ./checkup.sh accessions.txt
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 parse_accessions "$@"
 
 printf '%-30s  %-10s %-12s %-10s %-10s %-20s %-10s %-10s %-10s\n' \

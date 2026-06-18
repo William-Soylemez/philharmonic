@@ -12,7 +12,7 @@
 #   sbatch sbatch_jobs/bulk_download_filter.sh <accessions_file>
 #   sbatch sbatch_jobs/bulk_download_filter.sh GCF_002263795.3 GCF_000001405.40
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 mkdir -p "$RESULTS_BASE"
 redirect_log "$GLOBAL_LOGS/bulk_download_filter_${SLURM_JOB_ID}.out"

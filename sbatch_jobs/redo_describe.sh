@@ -16,13 +16,13 @@
 # summarize-clusters is idempotent: clusters that already have a confident name
 # are kept as-is, so this is cheap and safe to re-run.
 
-source $WORK/philharmonic/sbatch_jobs/common.sh
+source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
 SPECIES=$1
 SPECIES_DIR="$RESULTS_BASE/${SPECIES}_results"
 redirect_log "$SPECIES_DIR/logs/redo_describe_${SLURM_JOB_ID}.out"
 activate_env
-source $WORK/.env_secrets
+source /work/11301/wsoylemez/vista/.env_secrets
 
 CLUSTERS_JSON="$SPECIES_DIR/${SPECIES}_clusters.json"
 if [[ ! -f "$CLUSTERS_JSON" ]]; then
