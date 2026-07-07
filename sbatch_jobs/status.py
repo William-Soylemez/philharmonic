@@ -41,6 +41,7 @@ STEPS = [
     "inference",
     "cluster",
     "describe",
+    "visualize",
 ]
 
 
