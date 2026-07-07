@@ -13,9 +13,13 @@
 # A single submitted job iterates over a group of species in one allocation
 # (each species is cheap: pure-stdlib + pydantic, no GPU).
 #
+# Lives in philharmonic/sbatch_jobs/viz_preprocess/ alongside its Python code,
+# and reuses the philharmonic job harness (common.sh) for paths + helpers.
+# See cluster_setup.md in this directory for full setup.
+#
 # Usage:
-#     sbatch viz_preprocess.sh accessions.txt
-#     sbatch viz_preprocess.sh GCF_000002765.6 GCF_000146045.2 ...
+#     sbatch sbatch_jobs/viz_preprocess/viz_preprocess.sh accessions.txt
+#     sbatch sbatch_jobs/viz_preprocess/viz_preprocess.sh GCF_000002765.6 ...
 #
 # Behavior:
 #   - SKIPS species that aren't described yet (no clusters.json and no .zip).
@@ -28,8 +32,9 @@
 
 source /work/11301/wsoylemez/vista/philharmonic/sbatch_jobs/common.sh
 
-# --- cluster-specific paths (adjust to where the Db-Visualizer repo lives) -----
-VIZ_CODE=/work/11301/wsoylemez/vista/Db-Visualizer/preprocessing
+# --- paths --------------------------------------------------------------------
+# Preprocessing code now lives in this repo, next to common.sh.
+VIZ_CODE="$PHILHARMONIC_CODE/sbatch_jobs/viz_preprocess"
 VIZ_OUT=/work/11301/wsoylemez/vista/philharmonic_results/visualizer_data
 
 redirect_log "$GLOBAL_LOGS/viz_preprocess_${SLURM_JOB_ID:-local}.out"

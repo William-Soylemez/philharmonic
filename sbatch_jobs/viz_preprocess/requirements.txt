@@ -1,0 +1,4 @@
+# Preprocessing now uses only the Python stdlib plus pydantic for schema-checked
+# output. (networkx/pandas were dropped — layout is done client-side, and TSV/CSV
+# reads use the csv module.)
+pydantic>=2.0
