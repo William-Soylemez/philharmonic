@@ -76,6 +76,7 @@ class ClusterDetail(BaseModel):
 
 class ProteinDetail(BaseModel):
     accession: str
+    name: str = ""  # FASTA-header description, minus accession and trailing [species]
     pfam: list[str]
     go_terms: list[str]
     cluster_hash: str | None

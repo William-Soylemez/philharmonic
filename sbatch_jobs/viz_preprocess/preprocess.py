@@ -270,13 +270,41 @@ def _build_gene_index(clusters: dict) -> dict[str, str]:
     return out
 
 
-def _build_proteins(go_map: dict[str, dict], gene_index: dict[str, str]) -> dict[str, ProteinDetail]:
+_SPECIES_BRACKET_RE = re.compile(r"\s*\[[^\]]*\]\s*$")
+
+
+def _load_protein_names(fasta_path: Path) -> dict[str, str]:
+    """{accession: name} from FASTA headers `>accession name... [Genus species]`.
+
+    The name is the header minus the leading accession token and the trailing
+    `[species]` bracket. Only header lines are read.
+    """
+    names: dict[str, str] = {}
+    if not fasta_path.exists():
+        return names
+    with fasta_path.open() as f:
+        for line in f:
+            if not line.startswith(">"):
+                continue
+            parts = line[1:].strip().split(None, 1)
+            acc = parts[0]
+            rest = parts[1] if len(parts) > 1 else ""
+            names[acc] = _SPECIES_BRACKET_RE.sub("", rest).strip()
+    return names
+
+
+def _build_proteins(
+    go_map: dict[str, dict],
+    gene_index: dict[str, str],
+    names: dict[str, str],
+) -> dict[str, ProteinDetail]:
     # Every protein gets an entry — the union of GO-mapped proteins and all
     # cluster members — so a gene page always loads, even with no annotations.
     accessions = set(go_map) | set(gene_index)
     return {
         acc: ProteinDetail(
             accession=acc,
+            name=names.get(acc, ""),
             pfam=go_map.get(acc, {}).get("pfam", []),
             go_terms=go_map.get(acc, {}).get("go_terms", []),
             cluster_hash=gene_index.get(acc),
@@ -306,11 +334,16 @@ def preprocess(species_id: str, input_path: Path, output_root: Path) -> None:
         if not clusters_path.exists():
             raise FileNotFoundError(clusters_path)
 
+        # Original species dir (parent of the zip, when input is a zip). Holds the
+        # describe logs and the unfiltered FASTA used for names + MEDFORD.
+        species_dir = input_path if input_path.is_dir() else input_path.parent
+
         with clusters_path.open() as f:
             clusters = json.load(f)
         functions = _load_functions(functions_path) if functions_path.exists() else {}
         go_map = _load_go_map(go_map_path) if go_map_path.exists() else {}
         cluster_edges = _load_cluster_graph(graph_path) if graph_path.exists() else []
+        names = _load_protein_names(species_dir / f"{species_id}_unfiltered.fasta")
 
         # global recipe (assume uniform; take the first cluster's structure)
         first = next(iter(clusters.values())) if clusters else {}
@@ -332,7 +365,7 @@ def preprocess(species_id: str, input_path: Path, output_root: Path) -> None:
         gene_index = _build_gene_index(clusters)
         _write_json(out_dir / "gene_index.json", gene_index)
 
-        proteins = _build_proteins(go_map, gene_index)
+        proteins = _build_proteins(go_map, gene_index, names)
         _write_json(
             out_dir / "proteins.json",
             {acc: detail.model_dump() for acc, detail in proteins.items()},
@@ -352,9 +385,7 @@ def preprocess(species_id: str, input_path: Path, output_root: Path) -> None:
         )
         _write_json(out_dir / "manifest.json", manifest.model_dump())
 
-        # MEDFORD metadata. Reads describe logs / the unfiltered FASTA from the
-        # original species dir (the parent of the zip, when input is a zip).
-        species_dir = input_path if input_path.is_dir() else input_path.parent
+        # MEDFORD metadata (uses describe logs / unfiltered FASTA in species_dir).
         try:
             write_medford(species_id, species_dir, out_dir)
         except Exception as e:
