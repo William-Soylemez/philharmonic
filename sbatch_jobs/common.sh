@@ -9,6 +9,10 @@ RESULTS_BASE=/work/11301/wsoylemez/vista/philharmonic_results/bulk_results
 EMBEDDINGS_DIR=$SCRATCH/philharmonic_embeddings
 GLOBAL_LOGS=/work/11301/wsoylemez/vista/philharmonic_results/logs
 
+# Set global group read/write permissions for all files created by this script, so that other
+# users in the group can use them.
+umask 0002
+
 # Redirect all stdout/stderr to the given log file, creating its directory.
 # Call this before activate_env so module-load output is captured in the log.
 redirect_log() {
