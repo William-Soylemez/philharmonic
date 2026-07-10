@@ -53,6 +53,9 @@ class ClusterGraph(BaseModel):
 class ClusterMember(BaseModel):
     accession: str
     go_terms: list[str]
+    # True for proteins re-added to the cluster by ReCIPE (not part of the
+    # original high-confidence clustering). Shown as ordinary members.
+    recipe: bool = False
 
 
 class ClusterDetail(BaseModel):

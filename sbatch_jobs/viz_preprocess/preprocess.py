@@ -12,7 +12,7 @@ Input must contain files named `<species_id>_<suffix>`:
     cluster_graph.tsv              # cluster-of-clusters edges
     cluster_graph_functions.tsv    # per-cluster top function label
     GO_map.csv                     # protein -> pfam, GO annotations
-    network.positive.tsv           # full PPI network (kept only as gzipped download)
+    network.positive.tsv           # full PPI network (recipe edges + gzipped download)
     human_readable.txt             # DROPPED: fully redundant with clusters.json
 
 Output (under <output_root>/species/<species_id>/):
@@ -25,11 +25,11 @@ Output (under <output_root>/species/<species_id>/):
     raw/network.positive.tsv.gz    # gzipped full network, download-only
 
 Redundancy removed vs. raw:
-    - network.positive.tsv         -> gzipped, not loaded by any page
+    - network.positive.tsv         -> gzipped for download; also scanned for recipe edges
     - human_readable.txt           -> deleted (llm_* fields already structured)
     - clusters.json.human_readable -> deleted (we parse out only Triangles/MaxDegree)
     - clusters.json.GO_terms       -> kept in detail only; summary keeps top-5
-    - clusters.json.recipe         -> hoisted to manifest; per-cluster keeps re-added list
+    - clusters.json.recipe         -> re-added proteins merged into members + graph as edges
     - graph weights                -> rounded to 3 dp
     - GO_map manual_annot column   -> dropped; GO IDs deduped per protein
 """
@@ -116,13 +116,21 @@ def _parse_stats(human_readable: str) -> tuple[int, int]:
 
 
 def _recipe_readded(recipe: dict) -> list[str]:
-    """Flatten ReCIPE re-added accessions out of recipe[method][threshold]."""
+    """Flatten ReCIPE re-added accessions out of recipe[method][threshold].
+
+    Deduplicated (a protein can appear under several methods/thresholds) while
+    preserving first-seen order.
+    """
     out: list[str] = []
+    seen: set[str] = set()
     for method_val in (recipe or {}).values():
         if isinstance(method_val, dict):
             for thr_val in method_val.values():
                 if isinstance(thr_val, list):
-                    out.extend(thr_val)
+                    for acc in thr_val:
+                        if acc not in seen:
+                            seen.add(acc)
+                            out.append(acc)
     return out
 
 
@@ -173,11 +181,77 @@ def _load_cluster_graph(path: Path) -> list[tuple[str, str, float]]:
     return out
 
 
+def _load_network(path: Path) -> dict[str, list[tuple[str, float]]]:
+    """Adjacency map {accession: [(neighbor, weight), ...]} from the headerless
+    `network.positive.tsv` (protein_a  protein_b  weight). Undirected: each edge
+    is stored under both endpoints. Used to recover ReCIPE re-added edges, which
+    live only here (never in per-cluster `graph`)."""
+    adj: dict[str, list[tuple[str, float]]] = {}
+    with path.open(newline="") as f:
+        for row in csv.reader(f, delimiter="\t"):
+            if len(row) < 3:
+                continue
+            a, b = row[0], row[1]
+            try:
+                w = float(row[-1])
+            except ValueError:
+                continue  # skip a header row if one is ever present
+            adj.setdefault(a, []).append((b, w))
+            adj.setdefault(b, []).append((a, w))
+    return adj
+
+
+def _recipe_edges(
+    members: list[str],
+    readded: list[str],
+    network_adj: dict[str, list[tuple[str, float]]],
+) -> list[tuple[str, str, float]]:
+    """Network edges within (members ∪ readded) that touch >=1 re-added protein.
+
+    These are exactly the edges ReCIPE relied on to reconnect the dropped
+    proteins; they are disjoint from the cluster's original member-member
+    `graph`. Deduplicated to one undirected edge each; weights rounded."""
+    node_set = set(members) | set(readded)
+    out: list[tuple[str, str, float]] = []
+    seen: set[tuple[str, str]] = set()
+    for r in readded:
+        for other, w in network_adj.get(r, ()):
+            if other == r or other not in node_set:
+                continue
+            key = (r, other) if r < other else (other, r)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((key[0], key[1], round(w, WEIGHT_DP)))
+    return out
+
+
+def _graph_stats(edges: list[tuple[str, str, float]]) -> tuple[int, int]:
+    """(triangles, max_degree) for an undirected edge list. Matches the numbers
+    PHILHARMONIC records in human_readable for its original graphs, so it can
+    stand in once ReCIPE edges are merged."""
+    adj: dict[str, set[str]] = {}
+    for a, b, *_ in edges:
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+    max_degree = max((len(v) for v in adj.values()), default=0)
+    triangles = 0
+    for a, neigh_a in adj.items():
+        for b in neigh_a:
+            if b <= a:
+                continue
+            for c in neigh_a & adj[b]:
+                if c > b:
+                    triangles += 1
+    return triangles, max_degree
+
+
 # --------------------------------------------------------------------- builders
 
 def _build_clusters(
     clusters: dict,
     functions: dict[str, str | None],
+    network_adj: dict[str, list[tuple[str, float]]],
 ) -> tuple[list[ClusterSummary], dict[str, ClusterDetail]]:
     summaries: list[ClusterSummary] = []
     details: dict[str, ClusterDetail] = {}
@@ -185,10 +259,24 @@ def _build_clusters(
     for chash, c in clusters.items():
         chash = str(chash)
         members = c.get("members", [])
-        size = len(members)
-        graph = [(str(a), str(b), round(float(w), WEIGHT_DP)) for a, b, w in c.get("graph", [])]
+        member_set = set(members)
+        # ReCIPE re-added proteins are treated as ordinary members. Guard against
+        # one ever also appearing in the native member list (shouldn't happen).
+        readded = [r for r in _recipe_readded(c.get("recipe", {})) if r not in member_set]
+        size = len(members) + len(readded)
+
+        base_graph = [(str(a), str(b), round(float(w), WEIGHT_DP)) for a, b, w in c.get("graph", [])]
+        # ReCIPE edges live only in the full network, never in per-cluster graph.
+        recipe_edges = _recipe_edges(members, readded, network_adj) if network_adj else []
+        graph = base_graph + recipe_edges
+
         go_counts = {str(k): int(v) for k, v in (c.get("GO_terms") or {}).items()}
-        triangles, max_degree = _parse_stats(c.get("human_readable", ""))
+        # Recompute stats when the graph changed; otherwise keep PHILHARMONIC's
+        # (verified identical to _graph_stats for its original graphs).
+        if recipe_edges:
+            triangles, max_degree = _graph_stats(graph)
+        else:
+            triangles, max_degree = _parse_stats(c.get("human_readable", ""))
         top_function = functions.get(chash)
         confidence = _normalize_confidence(c.get("llm_confidence"))
         title = c.get("llm_name") or ""
@@ -224,7 +312,7 @@ def _build_clusters(
             members=[],  # filled in by _attach_members
             graph=graph,
             all_go_terms=go_counts,
-            recipe_readded=_recipe_readded(c.get("recipe", {})),
+            recipe_readded=readded,
         )
 
     summaries.sort(key=lambda s: s.size, reverse=True)
@@ -238,10 +326,21 @@ def _attach_members(
 ) -> None:
     for chash, c in clusters.items():
         detail = details[str(chash)]
-        detail.members = [
+        native = [
             ClusterMember(accession=acc, go_terms=go_map.get(acc, {}).get("go_terms", []))
             for acc in c.get("members", [])
         ]
+        # ReCIPE re-added proteins appended as ordinary members, flagged so the UI
+        # can optionally highlight them. detail.recipe_readded is already deduped.
+        readded = [
+            ClusterMember(
+                accession=acc,
+                go_terms=go_map.get(acc, {}).get("go_terms", []),
+                recipe=True,
+            )
+            for acc in detail.recipe_readded
+        ]
+        detail.members = native + readded
 
 
 def _build_cluster_graph(
@@ -344,6 +443,9 @@ def preprocess(species_id: str, input_path: Path, output_root: Path) -> None:
         go_map = _load_go_map(go_map_path) if go_map_path.exists() else {}
         cluster_edges = _load_cluster_graph(graph_path) if graph_path.exists() else []
         names = _load_protein_names(species_dir / f"{species_id}_unfiltered.fasta")
+        # Full PPI network: needed to recover the edges ReCIPE used to reconnect
+        # re-added proteins (absent from per-cluster `graph`).
+        network_adj = _load_network(network_path) if network_path.exists() else {}
 
         # global recipe (assume uniform; take the first cluster's structure)
         first = next(iter(clusters.values())) if clusters else {}
@@ -352,7 +454,7 @@ def preprocess(species_id: str, input_path: Path, output_root: Path) -> None:
         out_dir = output_root / "species" / species_id
         (out_dir / "clusters").mkdir(parents=True, exist_ok=True)
 
-        summaries, details = _build_clusters(clusters, functions)
+        summaries, details = _build_clusters(clusters, functions, network_adj)
         _attach_members(clusters, details, go_map)
 
         _write_json(out_dir / "clusters.json", [s.model_dump() for s in summaries])
